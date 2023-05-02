@@ -15,7 +15,7 @@ best_frame = []
 is_running = True
 
 
-def get_best_frame(video_path, model_name, num_frame=0, fps=5, frame_size=800, box_size=300):
+def get_best_frame(video_path, model_name, num_frame=0, fps=10, frame_size=800, box_size=300):
     if model_name == "efficientnet":
         model = load_efficientnet()
     else:
@@ -176,11 +176,11 @@ def loading():
         else:
             session['model'] = selected_checkboxes[0]
         if num_frames == "":
-            num_frames = 500
+            num_frames = 0
         if frame_size == "":
             frame_size = 450
         if fps == "":
-            fps = 5
+            fps = 10
         session['num_frames'] = num_frames
         session['frame_size'] = frame_size
         session['fps'] = fps
