@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="container">
+        <img src="https://www.hse.ru/pubs/share/direct/300372019.jpg" class="img-fluid rounded mx-auto d-block" alt="Responsive image">
+        <style>
+            .img-fluid {
+                max-width: 100%;
+                height: 300px;
+            }
+        </style>
+    </div>
+    <script>
+        window.location.href="/delete";
+    </script>
+    <div class="mx-auto text-center">
+        <br><br><br>
+        <p class="lead">Error occurred: No frame is suitable or file uploaded incorrectly.</p>
+        <p> <a href="/delete">Try again</a></p>
+    </div>
+
+{% endblock %}

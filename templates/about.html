@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="container">
+        <img src="https://www.hse.ru/pubs/share/direct/300372019.jpg" class="img-fluid rounded mx-auto d-block" alt="Responsive image">
+        <style>
+            .img-fluid {
+                max-width: 100%;
+                height: 100px;
+            }
+        </style>
+    </div>
+    <div class="container">
+        <div class="mx-auto text-center">
+            <h1 class="display-3">About this project</h1>
+            <p class="lead">
+                This project is Sifei Meng's third course project in AMI CS HSE.
+            </p>
+            <p class="lead">
+                The goal of the site is to get the best "face" frame of the video that can be the thumbnail of the video.
+            </p>
+        </div>
+    </div>
+    <div class="container">
+        <div class="row">
+            <ul class="list-group list-group-horizontal">
+                <li class="list-group-item"><p><strong>Num of frames</strong>: the number of frames to be processed.
+                    By default, the program will process take first 4000 frames of the video.
+                    The execution time depends on the size of the video.
+                    This variable can limit the execution time if the user wants to pick the best
+                    frame only from the first few frames. In order to take all frames, please enter 0.</p></li>
+                <li class="list-group-item"><p><strong>Frame size</strong>: the width of the final frame.
+                    The height will also be adjusted while preserving the image proportion.
+                    By default, the site generates the best frame with an image width of 450px.</p></li>
+            </ul>
+        </div>
+    </div>
+{% endblock %}
