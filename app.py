@@ -15,82 +15,121 @@ best_frame = []
 is_running = True
 
 
-def get_best_frame(video_path, model_name, num_frame=0, fps=10, frame_size=800, box_size=300):
-    if model_name == "efficientnet":
-        model = load_efficientnet()
-    else:
-        model = load_net()
+def get_best_frame(video_path, num_frame=0, fps=5, frame_size=450):
+    # initialization
+    model = load_efficientnet()
     start_time = time.time()
     cap = cv2.VideoCapture(video_path)
     video_fps = cap.get(cv2.CAP_PROP_FPS)
-    # 5 frames per second
-    if fps > video_fps or video_fps < fps:
-        every_n_frame = 1
-    else:
-        every_n_frame = video_fps / fps
-    if num_frame == 0:
+    every_n_frame = max(1, round(video_fps / fps))
+    if num_frame == 0 or num_frame > int(cap.get(cv2.CAP_PROP_FRAME_COUNT)):
         num_frame = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    count = 0
-    is_first = True
-    threshold = 0
-    best_score, best_nframe, cur_frame, the_best_frame = None, None, None, None
-    blur_rate, ear_rate, mar_rate = None, 2, 200
+    count, is_first, spare = 0, True, None
+    the_best_frame = {"score": None, "frame": None, "threshold": None, "count": None}
+    calibrations = {"ear": None, "blur": None, "mar": None, 'beauty': None}
+    normalizations = {"ear": 1, "blur": 1, "mar": 80, "beauty": None}
     while is_running:
         ret, frame = cap.read()
         count += 1
         if ret:
+            # analyze 5 frames per second
             if count % every_n_frame != 0:
                 continue
-            cur_frame = frame
+            # face detection
+            frame = cv2.resize(frame, (frame_size, int(frame.shape[0] / (frame.shape[1] / frame_size))))
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             faces = detect(gray, 0)
+            # if no faces detected
             if len(faces) == 0:
                 continue
-            score_blur = blur_score(gray)
-            if is_first:
-                blur_rate = score_blur * 2
-            shape = predict(gray, faces[0])
+            # facial landmarks detection
+            face = faces[0]
+            shape = predict(gray, face)
             shape = face_utils.shape_to_np(shape)
-            not_ok, left_ear = eye_aspect_ratio('left_eye', gray, shape, is_first)
-            # print("left ear", left_ear, not_ok)
-            if not_ok:
+            # count ear
+            closed_eyes_l, left_ear = eye_aspect_ratio('left_eye', shape)
+            closed_eyes_r, right_ear = eye_aspect_ratio('right_eye', shape)
+            if closed_eyes_l or closed_eyes_r:
                 continue
-            not_ok, right_ear = eye_aspect_ratio('right_eye', gray, shape, is_first)
-            if not_ok:
-                continue
-            ear = (left_ear + right_ear) / 2
+            # ear score
+            if is_first:
+                calibrations['ear'] = round((left_ear + right_ear) / 2, 4)
+                normalizations['ear'] = 4 / (left_ear + right_ear)
+            ear_score = min((left_ear + right_ear - calibrations['ear']) * normalizations['ear'], 2.5)
+            # open mouth detection
             opened_mouth, mar = mouth_dist(shape)
             if opened_mouth:
                 continue
-            # print(mar)
-            score_blur /= blur_rate
-            mar /= mar_rate
+            spare = frame
+            if is_first:
+                calibrations['mar'] = round(mar, 4)
+            mar_score = (mar - calibrations['mar']) * normalizations['mar']
+            # gaze detection
+            left_gaze = looking_center(gray, shape, "left_eye")
+            right_gaze = looking_center(gray, shape, "right_eye")
+            if left_gaze == -2 or right_gaze == -2:
+                continue
+            look_center_score = (left_gaze + right_gaze)
+            # head pose
+            try:
+                roll, pitch, yawn = head_pose(gray, shape)
+                # print("pitch", pitch)
+            except:
+                continue
+            if pitch > 2:
+                head_score = -4
+            elif pitch > -1.5:
+                head_score = -2
+            elif pitch > - 5:
+                head_score = 1
+            else:
+                head_score = 2
+            # print("roll", roll, "pitch", pitch, "yawn", yawn)
+            # blur check
+            blur_score = detect_blur(gray)
+            if is_first:
+                calibrations['blur'] = int(blur_score)
+            # print('normalizations[blur]', normalizations['blur'], normalizations['blur'] * 2)
+            blur_score = blur_score / calibrations['blur']
+            if blur_score < 1:
+                blur_score = -2
             beauty_score = predict_img(frame, model)
-            overall_score = beauty_score + ear + score_blur - mar
-            if is_first or overall_score >= threshold:
-                threshold = overall_score
-                best_nframe = count
-                best_score = beauty_score
+            if is_first:
+                calibrations['beauty'] = int(beauty_score)
+                normalizations['beauty'] = 4 / (beauty_score - calibrations['beauty'])
+            beauty_score = (beauty_score - calibrations['beauty']) * normalizations['beauty']
+            # count general score
+            overall_score = beauty_score + ear_score + look_center_score + blur_score - mar_score + head_score
+
+            # print("count", count, "overall", overall_score, "look score", look_center_score, "beauty", beauty_score,
+            #       "mar", mar_score, "ear", ear_score, "blur", blur_score, "head_score", - head_score)
+            # update best_frame
+            if is_first or overall_score >= the_best_frame['threshold']:
+                the_best_frame['threshold'] = overall_score
+                the_best_frame['score'] = overall_score
+                the_best_frame['frame'] = frame
+                the_best_frame['count'] = count
                 is_first = False
-                the_best_frame = cur_frame
             if count >= num_frame:
-                if best_nframe:
+                if the_best_frame['count']:
                     break
                 else:
                     count = 0
+                    continue
         else:
             break
-    if not best_nframe:
-        return False, None, None, None, None
-    else:
-        frame = cv2.resize(the_best_frame, (frame_size, int(the_best_frame.shape[0]
-                                                            / (the_best_frame.shape[1] / frame_size))))
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        faces = detect(gray, 0)
-        shape = predict(gray, faces[0])
-        shape = face_utils.shape_to_np(shape)
+    if the_best_frame['count'] is None and spare is None:
+        return False, None, None, None
+    elif the_best_frame['count'] is None and spare is not None:
+        frame = cv2.resize(spare, (frame_size, int(spare.shape[0] / (spare.shape[1] / frame_size))))
         exec_time = time.time() - start_time
-        return True, frame, best_score, num_frame / exec_time, exec_time
+        return True, frame, num_frame / exec_time, exec_time
+    else:
+        frame = cv2.resize(the_best_frame['frame'], (frame_size, int(the_best_frame['frame'].shape[0]
+                                                            / (the_best_frame['frame'].shape[1] / frame_size))))
+        exec_time = time.time() - start_time
+        print("best:", the_best_frame['count'])
+        return True, frame, num_frame / exec_time, exec_time
 
 
 def is_allowed_file(filename):
@@ -113,20 +152,20 @@ def success():
     num_frames = session.get('num_frames', None)
     frame_size = session.get('frame_size', None)
     filename = session.get('filename', None)
-    model_name = session.get('model', None)
     fpsecond = session.get('fps', None)
-    if num_frames is None or frame_size is None or filename is None or model_name is None or fpsecond is None:
+    if num_frames is None or frame_size is None or filename is None or fpsecond is None:
         return render_template('error.html')
-    has_frame, frame, score, fps, exec_time = get_best_frame(os.path.join("uploads", filename), model_name=model_name, num_frame=int(num_frames), fps=int(fpsecond), frame_size=int(frame_size))
+    has_frame, frame, fps, exec_time = get_best_frame(os.path.join("uploads", filename), num_frame=int(num_frames),
+                                                      fps=int(fpsecond), frame_size=int(frame_size))
     if not is_running:
         return redirect('/delete')
     if not has_frame:
-        print("error")
+        # print("error")
         return render_template('error.html')
     best_frame.append(frame)
     if os.path.isfile(os.path.join("uploads", filename)):
         os.remove(os.path.join("uploads", filename))
-    return render_template('inference.html', score=score, image=frame, fps=round(fps, 2), time=round(exec_time, 2))
+    return render_template('inference.html', image=frame, fps=round(fps, 2), time=round(exec_time, 2))
 
 
 @app.route('/generate_image')
@@ -170,17 +209,12 @@ def loading():
         num_frames = request.form.get('num_frames')
         frame_size = request.form.get('frame_size')
         fps = request.form.get('fps')
-        selected_checkboxes = request.form.getlist('checkboxes')
-        if len(selected_checkboxes) == 0: # nothing is selected
-            session['model'] = "efficientnet"
-        else:
-            session['model'] = selected_checkboxes[0]
         if num_frames == "":
             num_frames = 0
         if frame_size == "":
             frame_size = 450
         if fps == "":
-            fps = 10
+            fps = 3
         session['num_frames'] = num_frames
         session['frame_size'] = frame_size
         session['fps'] = fps

@@ -5,7 +5,6 @@
     <div class="mx-auto text-center">
         <h2 class="lead">Best frame of the video</h2>
         <img src="{{ url_for('generate_image') }}" alt="Best Frame">
-        <p>With beauty score: <strong>{{score}}</strong></p>
         <div class="container">
             <p>
                 <button class="btn btn-secondary text-center" type="button" data-toggle="collapse" data-target="#more_info" aria-expanded="false" aria-controls="more_info">
@@ -15,7 +14,6 @@
             <div class="collapse" id="more_info">
                 <div class="card card-body">
                     <p>Execution time: {{ time }} sec.</p>
-                    <p>{{fps}} frames processed per second.</p>
                 </div>
             </div>
         </div>
