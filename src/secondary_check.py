@@ -19,7 +19,7 @@ def looking_center(gray, shape, side):
     cv2.polylines(mask, [region], True, 255, 2)
     cv2.fillPoly(mask, [region], 255)
     eye = cv2.bitwise_and(gray, gray, mask=mask)
-    margin = 1
+    margin = 2
     min_x = np.min(region[:, 0]) + margin
     max_x = np.max(region[:, 0]) - margin
     min_y = np.min(region[:, 1]) + margin
