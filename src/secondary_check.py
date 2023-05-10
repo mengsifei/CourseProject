@@ -1,72 +1,19 @@
-import torch.nn as nn
-import dlib
-import torch
-from PIL import Image
 import cv2
 import numpy as np
-import torchvision.transforms as transforms
-from torchvision import models
 
-
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-detect = dlib.get_frontal_face_detector()
-predict = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
-
-
-def load_efficientnet():
-    efficientnet_v2_s = models.efficientnet_v2_s()
-    efficientnet_v2_s.classifier[1] = nn.Linear(1280, 1, bias=True)
-    checkpoint = torch.load('data/efficientnetsmall.pth', map_location='cpu')
-    efficientnet_v2_s.load_state_dict(checkpoint['model_state_dict'])
-    efficientnet_v2_s = efficientnet_v2_s.to(device)
-    return efficientnet_v2_s
-
-
-def predict_img(img, model):
-    transform = transforms.Compose([
-        transforms.Resize(256),
-        transforms.CenterCrop(224),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
-    img = Image.fromarray(img)
-    model.eval()
-    with torch.no_grad():
-        img = transform(img)
-        # make dim 4D
-        img = img.unsqueeze(0).to(device)
-        output = model(img).cpu()[0][0]
-        score = np.array(output)
-        return score
 
 def detect_blur(image):
     score = np.var(cv2.Laplacian(image, cv2.CV_64F))
     return score
 
 
-def norm(num1, num2):
-    return np.sqrt(np.sum((np.array(num1) - np.array(num2)) ** 2))
-
-
-def eye_aspect_ratio(side, shape):
-    threshold = 0.26
-    if side == "left_eye":
-        region = shape[36:42]
-    else:
-        region = shape[42:48]
-    p1, p2, p3, p4, p5, p6 = region[0], region[1], region[2], region[3], region[4], region[5]
-    ear = (norm(p2, p6) + norm(p3, p5)) / (2.0 * norm(p1, p4))
-    if ear < threshold:
-        return True, 0
-    return False, ear
-
-
 def looking_center(gray, shape, side):
     if side == "left_eye":
         region = shape[36:42]
-        left, right = 0.5, 1.2
     else:
         region = shape[42:48]
-        left, right = 0.9, 1.9
+    left_best, right_best = 0.75, 1.3
+    left_good, right_good = 0.5, 2.5
     height, width = gray.shape
     mask = np.zeros((height, width), np.uint8)
     cv2.polylines(mask, [region], True, 255, 2)
@@ -75,8 +22,8 @@ def looking_center(gray, shape, side):
     margin = 1
     min_x = np.min(region[:, 0]) + margin
     max_x = np.max(region[:, 0]) - margin
-    min_y = np.min(region[:, 1])
-    max_y = np.max(region[:, 1])
+    min_y = np.min(region[:, 1]) + margin
+    max_y = np.max(region[:, 1]) - margin
     gray_eye = eye[min_y: max_y, min_x: max_x]
     _, threshold_eye = cv2.threshold(gray_eye, 70, 255, cv2.THRESH_BINARY)
     if threshold_eye is None:
@@ -102,20 +49,12 @@ def looking_center(gray, shape, side):
         return -2
     gaze_ratio_horizontal = left_side_black / right_side_black
     # print(side, "gaze_ratio_horizontal", gaze_ratio_horizontal, "left", left, "right", right)
-    if int(left <= gaze_ratio_horizontal < right):
+    if int(left_best <= gaze_ratio_horizontal <= right_best):
         return 1
+    elif int(left_good <= gaze_ratio_horizontal <= right_good):
+        return 0.5
     else:
         return -1
-
-
-def mouth_dist(shape):
-    threshold = 0.09
-    mouth = shape[60:68]
-    mar = (norm(mouth[2], mouth[6]) + norm(mouth[1], mouth[7]) + norm(mouth[3], mouth[5])) / (2 * norm(mouth[0], mouth[4]))
-    # mar = (norm(mouth[2], mouth[6]) + norm(mouth[1], mouth[7]) + norm(mouth[3], mouth[5])) / 3
-    if mar == 0:
-        return True, 2
-    return mar >= threshold, mar
 
 
 def head_pose(gray, shape):

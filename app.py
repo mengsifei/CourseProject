@@ -2,7 +2,9 @@ import os
 import io
 from flask import Flask, render_template, request, redirect, session, send_file
 from werkzeug.utils import secure_filename
-from imports import *
+from src.net import *
+from src.primary_check import *
+from src.secondary_check import *
 import string
 from imutils import face_utils
 import time
@@ -15,7 +17,7 @@ best_frame = []
 is_running = True
 
 
-def get_best_frame(video_path, num_frame=0, fps=5, frame_size=450):
+def get_best_frame(video_path, num_frame=0, fps=3, frame_size=450):
     # initialization
     model = load_efficientnet()
     start_time = time.time()
@@ -24,10 +26,10 @@ def get_best_frame(video_path, num_frame=0, fps=5, frame_size=450):
     every_n_frame = max(1, round(video_fps / fps))
     if num_frame == 0 or num_frame > int(cap.get(cv2.CAP_PROP_FRAME_COUNT)):
         num_frame = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    count, is_first, spare = 0, True, None
+    count, is_first, spare_eye, spare_mouth = 0, True, None, None
     the_best_frame = {"score": None, "frame": None, "threshold": None, "count": None}
     calibrations = {"ear": None, "blur": None, "mar": None, 'beauty': None}
-    normalizations = {"ear": 1, "blur": 1, "mar": 80, "beauty": None}
+    normalizations = {"ear": 1, "blur": 1, "mar": 30, "beauty": None}
     while is_running:
         ret, frame = cap.read()
         count += 1
@@ -54,14 +56,16 @@ def get_best_frame(video_path, num_frame=0, fps=5, frame_size=450):
             # ear score
             if is_first:
                 calibrations['ear'] = round((left_ear + right_ear) / 2, 4)
-                normalizations['ear'] = 4 / (left_ear + right_ear)
-            ear_score = min((left_ear + right_ear - calibrations['ear']) * normalizations['ear'], 2.5)
+                normalizations['ear'] = 2 / (left_ear + right_ear)
+            ear_score = min((left_ear + right_ear - calibrations['ear']) * normalizations['ear'], 1)
             # open mouth detection
             opened_mouth, mar = mouth_dist(shape)
+            if is_first or mar < 0.1:
+                spare_eye = frame
             if opened_mouth:
                 continue
-            spare = frame
             if is_first:
+                spare_mouth = frame
                 calibrations['mar'] = round(mar, 4)
             mar_score = (mar - calibrations['mar']) * normalizations['mar']
             # gaze detection
@@ -69,7 +73,7 @@ def get_best_frame(video_path, num_frame=0, fps=5, frame_size=450):
             right_gaze = looking_center(gray, shape, "right_eye")
             if left_gaze == -2 or right_gaze == -2:
                 continue
-            look_center_score = (left_gaze + right_gaze)
+            look_center_score = (left_gaze + right_gaze) / 2
             # head pose
             try:
                 roll, pitch, yawn = head_pose(gray, shape)
@@ -77,13 +81,13 @@ def get_best_frame(video_path, num_frame=0, fps=5, frame_size=450):
             except:
                 continue
             if pitch > 2:
-                head_score = -4
+                head_score = -1
             elif pitch > -1.5:
-                head_score = -2
+                head_score = -0.5
             elif pitch > - 5:
-                head_score = 1
+                head_score = 0.5
             else:
-                head_score = 2
+                head_score = 1
             # print("roll", roll, "pitch", pitch, "yawn", yawn)
             # blur check
             blur_score = detect_blur(gray)
@@ -92,17 +96,19 @@ def get_best_frame(video_path, num_frame=0, fps=5, frame_size=450):
             # print('normalizations[blur]', normalizations['blur'], normalizations['blur'] * 2)
             blur_score = blur_score / calibrations['blur']
             if blur_score < 1:
-                blur_score = -2
+                blur_score = -1
+            blur_score = min(blur_score, 1)
             beauty_score = predict_img(frame, model)
             if is_first:
                 calibrations['beauty'] = int(beauty_score)
-                normalizations['beauty'] = 4 / (beauty_score - calibrations['beauty'])
+                normalizations['beauty'] = 1 / (beauty_score - calibrations['beauty'])
             beauty_score = (beauty_score - calibrations['beauty']) * normalizations['beauty']
+            beauty_score = min(beauty_score, 1)
             # count general score
             overall_score = beauty_score + ear_score + look_center_score + blur_score - mar_score + head_score
-
+            # cv2_imshow(frame)
             # print("count", count, "overall", overall_score, "look score", look_center_score, "beauty", beauty_score,
-            #       "mar", mar_score, "ear", ear_score, "blur", blur_score, "head_score", - head_score)
+            #       "mar", mar_score, "ear", ear_score, "blur", blur_score, "head_score", head_score)
             # update best_frame
             if is_first or overall_score >= the_best_frame['threshold']:
                 the_best_frame['threshold'] = overall_score
@@ -118,19 +124,22 @@ def get_best_frame(video_path, num_frame=0, fps=5, frame_size=450):
                     continue
         else:
             break
-    if the_best_frame['count'] is None and spare is None:
+    if the_best_frame['count'] is None and spare_eye is None:
         return False, None, None, None
-    elif the_best_frame['count'] is None and spare is not None:
-        frame = cv2.resize(spare, (frame_size, int(spare.shape[0] / (spare.shape[1] / frame_size))))
+    elif the_best_frame['count'] is None and spare_eye is not None:
+        if spare_mouth is not None:
+            print("spare_mouth")
+            frame = cv2.resize(spare_mouth, (frame_size, int(spare_mouth.shape[0] / (spare_mouth.shape[1] / frame_size))))
+        else:
+            frame = cv2.resize(spare_eye, (frame_size, int(spare_eye.shape[0] / (spare_eye.shape[1] / frame_size))))
         exec_time = time.time() - start_time
         return True, frame, num_frame / exec_time, exec_time
     else:
         frame = cv2.resize(the_best_frame['frame'], (frame_size, int(the_best_frame['frame'].shape[0]
                                                             / (the_best_frame['frame'].shape[1] / frame_size))))
         exec_time = time.time() - start_time
-        print("best:", the_best_frame['count'])
+        # print("best:", the_best_frame['count'])
         return True, frame, num_frame / exec_time, exec_time
-
 
 def is_allowed_file(filename):
     if '.' in filename:
@@ -233,5 +242,5 @@ def loading():
 
 if __name__ == '__main__':
     app.debug = True
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True, threaded=True)
 

@@ -3,11 +3,11 @@
 {% block content %}
 
     <div class="mx-auto text-center">
-        <h2 class="lead">Best frame of the video</h2>
+        <br><br><h3 class="lead text-muted">Best frame of the video</h3>
         <img src="{{ url_for('generate_image') }}" alt="Best Frame">
         <div class="container">
             <p>
-                <button class="btn btn-secondary text-center" type="button" data-toggle="collapse" data-target="#more_info" aria-expanded="false" aria-controls="more_info">
+                <br><br><button class="btn btn-secondary text-center" type="button" data-toggle="collapse" data-target="#more_info" aria-expanded="false" aria-controls="more_info">
                     More information about the session
                 </button>
             </p>
@@ -22,7 +22,7 @@
                 <a class="nav-link" href="{{ url_for('generate_image') }}" download>Download file</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="/">Try again</a>
+                <a class="nav-link" href="/">Try again</a><br><br><br><br>
             </li>
         </ul>
     </div>
