@@ -3,7 +3,7 @@ import numpy as np
 
 
 def detect_blur(image):
-    score = np.var(cv2.Laplacian(image, cv2.CV_64F))
+    score = np.var(cv2.Laplacian(image, cv2.CV_16S))
     return score
 
 
@@ -52,29 +52,6 @@ def looking_center(gray, shape, side):
     if int(left_best <= gaze_ratio_horizontal <= right_best):
         return 1
     elif int(left_good <= gaze_ratio_horizontal <= right_good):
-        return 0.5
+        return 0.8
     else:
         return -1
-
-
-def head_pose(gray, shape):
-    model_points = np.array([[0.0, 0.0, 0.0],  # Tip of the nose [30]
-                        [0.0, -330.0, -65.0],  # Chin [8]
-                        [-225.0, 170.0, -135.0],  # Left corner of the left eye  [45]
-                        [225.0, 170.0, -135.0],  # Right corner of the right eye [36]
-                        [-150.0, -150.0, -125.0],  # Left corner of the mouth [54]
-                        [150.0, -150.0, -125.0]])  # Right corner of the mouth [48]
-    width = gray.shape[1]
-    center = (gray.shape[1] / 2, gray.shape[0] / 2)
-    camera_matrix = np.array([[width, 0, center[0]],
-                                    [0, width, center[1]],
-                                    [0, 0, 1]], dtype="double")
-    distortion_coefficients = np.zeros((4, 1))  # Assuming no lens distortion
-    image_points = shape[[30, 8, 45, 36, 54, 48]]  # pick points corresponding to the model
-    success, rotation_vec, translation_vec = \
-        cv2.solvePnP(model_points.astype('float32'), image_points.astype('float32'), camera_matrix, distortion_coefficients)
-    rotation_mat, _ = cv2.Rodrigues(rotation_vec)
-    pose_mat = cv2.hconcat((rotation_mat, translation_vec))
-    _, _, _, _, _, _, angles = cv2.decomposeProjectionMatrix(pose_mat)
-    angles[0, 0] = - angles[0, 0]
-    return angles[1, 0], angles[0, 0], angles[2, 0]

@@ -20,9 +20,10 @@ def eye_aspect_ratio(side, shape):
 
 def mouth_dist(shape):
     threshold = 0.09
-    mouth = shape[60:68]
-    mar = (norm(mouth[2], mouth[6]) + norm(mouth[1], mouth[7]) + norm(mouth[3], mouth[5])) / (2 * norm(mouth[0], mouth[4]))
-    # mar = (norm(mouth[2], mouth[6]) + norm(mouth[1], mouth[7]) + norm(mouth[3], mouth[5])) / 3
+    mouth = shape[60: 68]
+    mar = (norm(mouth[2], mouth[6]) + norm(mouth[1], mouth[7]) + norm(mouth[3], mouth[5])) / \
+          (2 * norm(mouth[0], mouth[4]))
     if mar == 0:
+        # mar shouldn't be exactly = 0
         return True, 2
     return mar >= threshold, mar

@@ -72,24 +72,9 @@ def get_best_frame(video_path, num_frame=0, fps=3, frame_size=450):
             left_gaze = looking_center(gray, shape, "left_eye")
             right_gaze = looking_center(gray, shape, "right_eye")
             if left_gaze == -2 or right_gaze == -2:
+                print("/..")
                 continue
             look_center_score = (left_gaze + right_gaze) / 2
-            # head pose
-            try:
-                roll, pitch, yawn = head_pose(gray, shape)
-                # print("pitch", pitch)
-            except:
-                continue
-            if pitch > 2:
-                head_score = -1
-            elif pitch > -1.5:
-                head_score = -0.5
-            elif pitch > - 5:
-                head_score = 0.5
-            else:
-                head_score = 1
-            # print("roll", roll, "pitch", pitch, "yawn", yawn)
-            # blur check
             blur_score = detect_blur(gray)
             if is_first:
                 calibrations['blur'] = int(blur_score)
@@ -105,10 +90,10 @@ def get_best_frame(video_path, num_frame=0, fps=3, frame_size=450):
             beauty_score = (beauty_score - calibrations['beauty']) * normalizations['beauty']
             beauty_score = min(beauty_score, 1)
             # count general score
-            overall_score = beauty_score + ear_score + look_center_score + blur_score - mar_score + head_score
+            overall_score = beauty_score + ear_score + look_center_score + blur_score - mar_score
             # cv2_imshow(frame)
             # print("count", count, "overall", overall_score, "look score", look_center_score, "beauty", beauty_score,
-            #       "mar", mar_score, "ear", ear_score, "blur", blur_score, "head_score", head_score)
+            #       "mar", mar_score, "ear", ear_score, "blur", blur_score)
             # update best_frame
             if is_first or overall_score >= the_best_frame['threshold']:
                 the_best_frame['threshold'] = overall_score
