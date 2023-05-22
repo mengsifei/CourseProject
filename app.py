@@ -17,7 +17,11 @@ best_frame = []
 is_running = True
 
 
-def get_best_frame(video_path, num_frame=0, fps=3, frame_size=450):
+def frame_resize(frame, frame_size=450):
+    return cv2.resize(frame, (frame_size, int(frame.shape[0] / (frame.shape[1] / frame_size))))
+
+
+def get_best_frame(video_path, num_frame=0, fps=3, frame_size=450, debug=False):
     # initialization
     model = load_efficientnet()
     start_time = time.time()
@@ -34,11 +38,11 @@ def get_best_frame(video_path, num_frame=0, fps=3, frame_size=450):
         ret, frame = cap.read()
         count += 1
         if ret:
-            # analyze 5 frames per second
+            # analyze n frames per second
             if count % every_n_frame != 0:
                 continue
             # face detection
-            frame = cv2.resize(frame, (frame_size, int(frame.shape[0] / (frame.shape[1] / frame_size))))
+            frame = frame_resize(frame)
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             faces = detect(gray, 0)
             # if no faces detected
@@ -58,6 +62,7 @@ def get_best_frame(video_path, num_frame=0, fps=3, frame_size=450):
                 calibrations['ear'] = round((left_ear + right_ear) / 2, 4)
                 normalizations['ear'] = 2 / (left_ear + right_ear)
             ear_score = min((left_ear + right_ear - calibrations['ear']) * normalizations['ear'], 1)
+            ear_score = max(ear_score, -1)
             # open mouth detection
             opened_mouth, mar = mouth_dist(shape)
             if is_first or mar < 0.1:
@@ -68,32 +73,34 @@ def get_best_frame(video_path, num_frame=0, fps=3, frame_size=450):
                 spare_mouth = frame
                 calibrations['mar'] = round(mar, 4)
             mar_score = (mar - calibrations['mar']) * normalizations['mar']
+            mar_score = min(mar_score, 1)
+            mar_score = max(mar_score, -1)
             # gaze detection
             left_gaze = looking_center(gray, shape, "left_eye")
             right_gaze = looking_center(gray, shape, "right_eye")
             if left_gaze == -2 or right_gaze == -2:
-                print("/..")
                 continue
             look_center_score = (left_gaze + right_gaze) / 2
             blur_score = detect_blur(gray)
             if is_first:
                 calibrations['blur'] = int(blur_score)
-            # print('normalizations[blur]', normalizations['blur'], normalizations['blur'] * 2)
             blur_score = blur_score / calibrations['blur']
             if blur_score < 1:
                 blur_score = -1
             blur_score = min(blur_score, 1)
+            blur_score = max(blur_score, -1)
             beauty_score = predict_img(frame, model)
             if is_first:
                 calibrations['beauty'] = int(beauty_score)
                 normalizations['beauty'] = 1 / (beauty_score - calibrations['beauty'])
             beauty_score = (beauty_score - calibrations['beauty']) * normalizations['beauty']
             beauty_score = min(beauty_score, 1)
+            beauty_score = max(beauty_score, -1)
             # count general score
             overall_score = beauty_score + ear_score + look_center_score + blur_score - mar_score
-            # cv2_imshow(frame)
-            # print("count", count, "overall", overall_score, "look score", look_center_score, "beauty", beauty_score,
-            #       "mar", mar_score, "ear", ear_score, "blur", blur_score)
+            if debug:
+                print("count", count, "overall", overall_score, "look score", look_center_score, "beauty", beauty_score,
+                  "mar", mar_score, "ear", ear_score, "blur", blur_score)
             # update best_frame
             if is_first or overall_score >= the_best_frame['threshold']:
                 the_best_frame['threshold'] = overall_score
@@ -110,21 +117,19 @@ def get_best_frame(video_path, num_frame=0, fps=3, frame_size=450):
         else:
             break
     if the_best_frame['count'] is None and spare_eye is None:
-        return False, None, None, None
+        return False, None, None
     elif the_best_frame['count'] is None and spare_eye is not None:
         if spare_mouth is not None:
-            print("spare_mouth")
-            frame = cv2.resize(spare_mouth, (frame_size, int(spare_mouth.shape[0] / (spare_mouth.shape[1] / frame_size))))
+            frame = frame_resize(spare_mouth)
         else:
-            frame = cv2.resize(spare_eye, (frame_size, int(spare_eye.shape[0] / (spare_eye.shape[1] / frame_size))))
+            frame = frame_resize(spare_eye)
         exec_time = time.time() - start_time
-        return True, frame, num_frame / exec_time, exec_time
+        return True, frame, exec_time
     else:
-        frame = cv2.resize(the_best_frame['frame'], (frame_size, int(the_best_frame['frame'].shape[0]
-                                                            / (the_best_frame['frame'].shape[1] / frame_size))))
+        frame = frame_resize(the_best_frame['frame'])
         exec_time = time.time() - start_time
-        # print("best:", the_best_frame['count'])
-        return True, frame, num_frame / exec_time, exec_time
+        return True, frame, exec_time
+
 
 def is_allowed_file(filename):
     if '.' in filename:
@@ -149,7 +154,7 @@ def success():
     fpsecond = session.get('fps', None)
     if num_frames is None or frame_size is None or filename is None or fpsecond is None:
         return render_template('error.html')
-    has_frame, frame, fps, exec_time = get_best_frame(os.path.join("uploads", filename), num_frame=int(num_frames),
+    has_frame, frame, exec_time = get_best_frame(os.path.join("uploads", filename), num_frame=int(num_frames),
                                                       fps=int(fpsecond), frame_size=int(frame_size))
     if not is_running:
         return redirect('/delete')
@@ -159,7 +164,7 @@ def success():
     best_frame.append(frame)
     if os.path.isfile(os.path.join("uploads", filename)):
         os.remove(os.path.join("uploads", filename))
-    return render_template('inference.html', image=frame, fps=round(fps, 2), time=round(exec_time, 2))
+    return render_template('inference.html', image=frame, time=round(exec_time, 2))
 
 
 @app.route('/generate_image')
