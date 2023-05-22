@@ -21,13 +21,14 @@ def frame_resize(frame, frame_size=450):
     return cv2.resize(frame, (frame_size, int(frame.shape[0] / (frame.shape[1] / frame_size))))
 
 
-def get_best_frame(video_path, num_frame=0, fps=3, frame_size=450, debug=False):
+def get_best_frame(video_path, num_frame=0, fps=3, debug=False):
     # initialization
     model = load_efficientnet()
     start_time = time.time()
     cap = cv2.VideoCapture(video_path)
     video_fps = cap.get(cv2.CAP_PROP_FPS)
     every_n_frame = max(1, round(video_fps / fps))
+    num_frame, fps = abs(num_frame), abs(fps)
     if num_frame == 0 or num_frame > int(cap.get(cv2.CAP_PROP_FRAME_COUNT)):
         num_frame = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     count, is_first, spare_eye, spare_mouth = 0, True, None, None
