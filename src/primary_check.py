@@ -1,12 +1,28 @@
 import numpy as np
 
+"""
+This file contains the strict criteria:
+1. Check if the eyes are closed
+2. Check if the mouth is opened
+"""
+
 
 def norm(num1, num2):
+    """
+    :param num1, num2: coordinates of the point
+    :return: the euclidean distance
+    """
     return np.sqrt(np.sum((np.array(num1) - np.array(num2)) ** 2))
 
 
 def eye_aspect_ratio(side, shape):
-    threshold = 0.26
+    """
+    :param side: Which side of the eyes is analyzed
+    :param shape: The coordinates of the facial landmarks
+    :return: 1. Boolean value if the eye is closed
+             2. The eye aspect ratio
+    """
+    threshold = 0.25
     if side == "left_eye":
         region = shape[36:42]
     else:
@@ -19,6 +35,11 @@ def eye_aspect_ratio(side, shape):
 
 
 def mouth_dist(shape):
+    """
+    :param shape: The coordinates of the facial landmarks
+    :return: 1. Boolean value if the mouth is open
+             2. The mouth aspect ratio
+    """
     threshold = 0.09
     mouth = shape[60: 68]
     mar = (norm(mouth[2], mouth[6]) + norm(mouth[1], mouth[7]) + norm(mouth[3], mouth[5])) / \

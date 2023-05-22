@@ -18,10 +18,28 @@ is_running = True
 
 
 def frame_resize(frame, frame_size=450):
+    """
+    :param frame: the image to be resized
+    :param frame_size: the width of the resized image, by default it equals to 450 pixels.
+    :return: resized frame
+    """
     return cv2.resize(frame, (frame_size, int(frame.shape[0] / (frame.shape[1] / frame_size))))
 
 
 def get_best_frame(video_path, num_frame=0, fps=3, frame_size=450, debug=False):
+    """
+    :param video_path: the path of the video. The filename is a string of 8 random symbols
+    :param num_frame: the first number of frames of a video to be analyzed
+    :param fps: the number of frames to be analyzed in a second
+    :param frame_size: the width of the final frame
+    :param debug: boolean value that will print values when equals to True
+    :return:
+     1. Boolean value if a suitable frame is found
+     2. The best frame
+     3. The execution time of the algorithm
+    """
+    if not os.path.isfile(video_path):
+        return False, None, None
     # initialization
     model = load_efficientnet()
     start_time = time.time()
@@ -101,7 +119,7 @@ def get_best_frame(video_path, num_frame=0, fps=3, frame_size=450, debug=False):
             overall_score = beauty_score + ear_score + look_center_score + blur_score - mar_score
             if debug:
                 print("count", count, "overall", overall_score, "look score", look_center_score, "beauty", beauty_score,
-                  "mar", mar_score, "ear", ear_score, "blur", blur_score)
+                      "mar", mar_score, "ear", ear_score, "blur", blur_score)
             # update best_frame
             if is_first or overall_score >= the_best_frame['threshold']:
                 the_best_frame['threshold'] = overall_score
@@ -133,6 +151,10 @@ def get_best_frame(video_path, num_frame=0, fps=3, frame_size=450, debug=False):
 
 
 def is_allowed_file(filename):
+    """
+    :param filename: the filename of the video (string)
+    :return: boolean value if the format is allowed
+    """
     if '.' in filename:
         file_format = filename.rsplit('.')[1]
         if file_format.lower() in ALLOWED_EXTENSIONS:
@@ -142,6 +164,9 @@ def is_allowed_file(filename):
 
 @app.route('/')
 def index():
+    """
+    the home page of the web-app
+    """
     global is_running
     is_running = True
     return render_template('index.html')
@@ -149,6 +174,9 @@ def index():
 
 @app.route('/infer', methods=['GET'])
 def success():
+    """
+    Runs the algorithm.
+    """
     num_frames = session.get('num_frames', None)
     frame_size = session.get('frame_size', None)
     filename = session.get('filename', None)
@@ -156,20 +184,25 @@ def success():
     if num_frames is None or frame_size is None or filename is None or fpsecond is None:
         return render_template('error.html')
     has_frame, frame, exec_time = get_best_frame(os.path.join("uploads", filename), num_frame=int(num_frames),
-                                                      fps=int(fpsecond), frame_size=int(frame_size))
+                                                 fps=int(fpsecond), frame_size=int(frame_size))
     if not is_running:
+        # if interrupted
         return redirect('/delete')
     if not has_frame:
-        # print("error")
+        # if no frame generated
         return render_template('error.html')
     best_frame.append(frame)
     if os.path.isfile(os.path.join("uploads", filename)):
+        # delete uploaded file
         os.remove(os.path.join("uploads", filename))
     return render_template('inference.html', image=frame, time=round(exec_time, 2))
 
 
 @app.route('/generate_image')
 def generate_image():
+    """
+    Send the byte format of the best frame
+    """
     filename = session.get('filename', None)
     filename = filename.rsplit('.')[0]
     img = best_frame[-1]
@@ -183,6 +216,9 @@ def generate_image():
 
 @app.route('/interrupt_execution')
 def interrupt():
+    """
+    Interrupts execution and deletes file
+    """
     global is_running
     is_running = False
     time.sleep(1)
@@ -191,6 +227,9 @@ def interrupt():
 
 @app.route('/delete')
 def delete_file():
+    """
+    Delete file if filename is detected
+    """
     filename = session.get('filename', None)
     if os.path.isfile(os.path.join("uploads", filename)):
         os.remove(os.path.join("uploads", filename))
@@ -199,11 +238,18 @@ def delete_file():
 
 @app.route('/about')
 def about():
+    """
+    Redirect to Documentation page
+    """
     return render_template('about.html')
 
 
 @app.route('/loading', methods=['GET', 'POST'])
 def loading():
+    """
+    Loading page when the algorithm is running. The file submitted from home page will be saved to session.
+    The filename will be automatically generated.
+    """
     if request.method == 'POST':
         f = request.files['file']
         num_frames = request.form.get('num_frames')
@@ -234,4 +280,3 @@ def loading():
 if __name__ == '__main__':
     app.debug = True
     app.run(host='0.0.0.0', port=5000, debug=True, threaded=True)
-

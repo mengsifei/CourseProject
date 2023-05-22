@@ -21,18 +21,79 @@
             </p>
         </div>
     </div>
+    <br><br><br><br>
+
+
     <div class="container">
-        <div class="row">
-            <ul class="list-group list-group-horizontal">
-                <li class="list-group-item"><p><strong>Num of frames</strong>: the number of frames to be processed.
-                    By default, the program will process take first 4000 frames of the video.
-                    The execution time depends on the size of the video.
-                    This variable can limit the execution time if the user wants to pick the best
-                    frame only from the first few frames. In order to take all frames, please enter 0.</p></li>
-                <li class="list-group-item"><p><strong>Frame size</strong>: the width of the final frame.
-                    The height will also be adjusted while preserving the image proportion.
-                    By default, the site generates the best frame with an image width of 450px.</p></li>
-            </ul>
-        </div>
+        <h2 id="documentation-for-users-who-want-to-use-the-web-app">Documentation for users who want to use the web-app.</h2>
+        <p class="lead">This web-application was developed by Sifei Meng, a third-year student from the Higher School of Economics. The primary objective of this application is to generate the optimal frame that encompasses a face from a video. The user can upload a video that is less than 60MB on the home page. On the subsequent row, the user can regulate several parameters, which are described in detail below.</p>
+        <p class="lead">The videos have to be in formats &#39;mp4&#39;, &#39;mov&#39;, &#39;wmv&#39;, &#39;avi&#39;, &#39;mkv&#39;.</p>
+        <ul class="lead">
+            <li><strong>NumFrame</strong> denotes the number of frames that the program will choose from. By default, the program will scrutinize the entire video. The value must be non-negative; if it is negative, the algorithm will take the absolute value. If the number is zero, the program will examine all the frames with corresponding fps. If there are no suitable frames within the given number of frames, and the algorithm has not examined the entire video, it will automatically continue analyzing the subsequent NumFrame frames until the video concludes. </li>
+            <li><strong>FPS</strong> refers to the number of frames that will be analyzed per second. By default, the program will analyze three frames per second, but the user can customize this value. The value must be non-negative; if it is negative, the program will use the absolute value. If the user sets the value greater than the fps of the original video, then the program will scrutinize every frame of each second. </li>
+            <li><strong>Frame_size</strong> enables the user to resize the width of the optimal frame. The height of the frame will be adjusted proportionally.</li>
+            <li><strong>Interrupt</strong> allows the user to halt the process by clicking on the &quot;Interrupt&quot; button displayed on the page while the algorithm is running. The process will cease within one second. </li>
+            <li><strong>Download</strong> file allows the user to effortlessly download the file by clicking on the &quot;Download file&quot; button after generating the best frame. The name of the jpg file will be &quot;best_frame_XXXXXXXX.jpg,&quot; where X represents random file names. </li>
+            <li><strong>More information about session</strong> provides insight into how long the session lasted. This is useful for comparing the productivity of the web-app with other analogous programs.</li>
+            <li><strong>Try again</strong> redirects the user to the home page.</li>
+        </ul>
+        <p class="lead">At the bottom of each page, four buttons are available. Code on Github is a link to the repository on Github. About this project is the documentation of the project. Leave feedback is a survey where the user can submit feedback. Home page enables the user to return to the home page at any time. </p>
+        <br><br><br><br>
+
+
+        <h2 id="user-guide-for-local-installation-of-web-application">User Guide for Local Installation of Web-Application</h2>
+        <ol class="lead">
+            <li>Repository Cloning: The first step is to clone the repository from Github to your local machine using Git. This can be done by executing the following command in your terminal:</li>
+        </ol>
+        <p><code>git clone https://github.com/mengsifei/CourseProject.git</code></p>
+        <ol start="2" class="lead">
+            <li>Dependency Installation: Once the repository has been cloned, the user must verify the package versions and install the required dependencies by running the following command:</li>
+        </ol>
+        <p><code>. ./bootstrap.sh</code></p>
+        <ol start="3" class="lead">
+            <li>Server Startup: After installing the dependencies, the server can be started by executing the following command:</li>
+        </ol>
+        <p><code>. ./start.sh</code></p>
+        <br><br><br><br>
+
+
+
+        <h2 id="документация-для-пользователей-желающих-использовать-веб-приложение">Документация для пользователей, желающих использовать веб-приложение.</h2>
+        <p class="lead">Данное веб-приложение было разработано Мэн Сыфэй, студенткой третьего курса Высшей школы экономики. Основная цель данного приложения заключается в получении лучшего изображения лица видеозаписи. Пользователь может загрузить видео размером менее 60 МБ на домашнюю страницу. На следующей строке пользователь может регулировать несколько параметров, которые подробно описаны ниже.</p>
+        <p class="lead">Видео должны быть в форматах &#39;mp4&#39;, &#39;mov&#39;, &#39;wmv&#39;, &#39;avi&#39;, &#39;mkv&#39;.</p>
+        <ul class="lead">
+            <li><p><strong>NumFrame</strong> определяет количество первых кадров, которые будут рассматриваться программой. По умолчанию программа будет анализировать всё видео. Значение должно быть неотрицательным; если оно отрицательное, алгоритм возьмет абсолютное значение. Если число равно нулю, программа будет анализировать все кадры с соответствующим fps. Если в данном количестве кадров нет подходящих, и алгоритм не проанализировал всё видео, он автоматически продолжит анализировать следующие NumFrame кадров до тех пор, пока не получено изображение, соответствующее критериям.</p>
+            </li>
+            <li><p><strong>FPS</strong> относится к количеству кадров, которые будут анализироваться в секунду. По умолчанию программа будет анализировать три кадра в секунду, но пользователь может настроить это значение. Значение должно быть неотрицательным; если оно отрицательное, программа будет использовать абсолютное значение. Если пользователь установит значение больше fps исходного видео, то программа будет анализировать каждый кадр каждой секунды.</p>
+            </li>
+            <li><p><strong>Frame_size</strong> позволяет пользователю изменять ширину оптимального кадра. Высота кадра будет соответственно скорректирована.</p>
+            </li>
+            <li><p><strong>Interrupt</strong> позволяет пользователю остановить процесс, нажав кнопку &quot;Прервать&quot;, отображаемую на странице во время работы алгоритма. Процесс прекратится в течение одной секунды.</p>
+            </li>
+            <li><p><strong>Download file</strong> позволяет пользователю легко загрузить файл, нажав кнопку &quot;Загрузить файл&quot; после создания лучшего кадра. Имя jpg-файла будет &quot;best_frame_XXXXXXXX.jpg&quot;, где X обозначает случайные символы.</p>
+            </li>
+            <li><p><strong>“More information about session”</strong> предоставляет представление о том, сколько времени длилась сессия. Это полезно для сравнения производительности веб-приложения с другими аналогичными программами.</p>
+            </li>
+            <li><p><strong>Try again</strong> перенаправляет пользователя на домашнюю страницу.</p>
+            </li>
+        </ul>
+        <p class="lead">Внизу каждой страницы доступны четыре кнопки. Code on Github - это ссылка на репозиторий на Github. About this project - это документация проекта. Leave feedback - это опрос, в котором пользователь может оставить отзыв. Home page позволяет пользователю вернуться на домашнюю страницу в любое время.</p>
+        <br><br><br><br>
+
+
+
+        <h2 id="документация-для-локальной-установки-веб-приложения">Документация для локальной установки веб-приложения</h2>
+        <ol class="lead">
+            <li>Клонирование репозитория: Первый шаг - склонировать репозиторий с Github на ваше локальное устройство, используя Git. Это можно сделать, выполнив следующую команду в терминале:</li>
+        </ol>
+        <p><code>git clone https://github.com/mengsifei/CourseProject.git</code></p>
+        <ol start="2" class="lead">
+            <li>Установка зависимостей: После того, как репозиторий был склонирован, пользователь должен проверить версии пакетов и установить необходимые зависимости, выполнив следующую команду:</li>
+        </ol>
+        <p><code>. ./bootstrap.sh</code></p>
+        <ol start="3" class="lead">
+            <li>Запуск сервера: После установки зависимостей сервер может быть запущен, выполнением следующей команды:</li>
+        </ol>
+        <p><code>. ./start.sh</code></p>
     </div>
 {% endblock %}
