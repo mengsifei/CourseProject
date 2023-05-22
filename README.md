@@ -19,12 +19,15 @@ At the bottom of each page, four buttons are available. Code on Github is a link
 ## User Guide for Local Installation of Web-Application
 
 1. Repository Cloning: The first step is to clone the repository from Github to your local machine using Git. This can be done by executing the following command in your terminal:
+
 ```git clone https://github.com/mengsifei/CourseProject.git```
 
 2. Dependency Installation: Once the repository has been cloned, the user must verify the package versions and install the required dependencies by running the following command:
+
 ```. ./bootstrap.sh```
 
 3. Server Startup: After installing the dependencies, the server can be started by executing the following command:
+
 ```. ./start.sh```
 
 ## Документация для пользователей, желающих использовать веб-приложение.
@@ -52,10 +55,13 @@ At the bottom of each page, four buttons are available. Code on Github is a link
 ## Документация для локальной установки веб-приложения
 
 1. Клонирование репозитория: Первый шаг - склонировать репозиторий с Github на ваше локальное устройство, используя Git. Это можно сделать, выполнив следующую команду в терминале:
+
 ```git clone https://github.com/mengsifei/CourseProject.git```
 
 2. Установка зависимостей: После того, как репозиторий был склонирован, пользователь должен проверить версии пакетов и установить необходимые зависимости, выполнив следующую команду:
+
 ```. ./bootstrap.sh```
 
 3. Запуск сервера: После установки зависимостей сервер может быть запущен, выполнением следующей команды:
+
 ```. ./start.sh```
