@@ -3,7 +3,7 @@ import numpy as np
 
 
 def detect_blur(image):
-    score = np.var(cv2.Laplacian(image, cv2.CV_8U))
+    score = np.var(cv2.Laplacian(image, cv2.CV_16S))
     return score
 
 
