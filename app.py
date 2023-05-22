@@ -21,7 +21,7 @@ def frame_resize(frame, frame_size=450):
     return cv2.resize(frame, (frame_size, int(frame.shape[0] / (frame.shape[1] / frame_size))))
 
 
-def get_best_frame(video_path, num_frame=0, fps=3, debug=False):
+def get_best_frame(video_path, num_frame=0, fps=3, frame_size=450, debug=False):
     # initialization
     model = load_efficientnet()
     start_time = time.time()
@@ -43,7 +43,7 @@ def get_best_frame(video_path, num_frame=0, fps=3, debug=False):
             if count % every_n_frame != 0:
                 continue
             # face detection
-            frame = frame_resize(frame)
+            frame = frame_resize(frame, frame_size)
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             faces = detect(gray, 0)
             # if no faces detected
@@ -121,13 +121,13 @@ def get_best_frame(video_path, num_frame=0, fps=3, debug=False):
         return False, None, None
     elif the_best_frame['count'] is None and spare_eye is not None:
         if spare_mouth is not None:
-            frame = frame_resize(spare_mouth)
+            frame = frame_resize(spare_mouth, frame_size)
         else:
-            frame = frame_resize(spare_eye)
+            frame = frame_resize(spare_eye, frame_size)
         exec_time = time.time() - start_time
         return True, frame, exec_time
     else:
-        frame = frame_resize(the_best_frame['frame'])
+        frame = frame_resize(the_best_frame['frame'], frame_size)
         exec_time = time.time() - start_time
         return True, frame, exec_time
 
