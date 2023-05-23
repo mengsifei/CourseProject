@@ -61,7 +61,7 @@ def get_best_frame(video_path, num_frame=0, fps=3, frame_size=450, debug=False):
             if count % every_n_frame != 0:
                 continue
             # face detection
-            frame = frame_resize(frame, frame_size)
+            frame = frame_resize(frame, 450)
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             faces = detect(gray, 0)
             # if no faces detected
